@@ -15,6 +15,17 @@ router = APIRouter()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
+@router.get("/", response_model=List[InspectionResponse])
+def get_inspections(
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    inspections = db.query(Inspection).order_by(Inspection.timestamp.desc()).offset(skip).limit(limit).all()
+    return inspections
+
+
 @router.post("/upload", response_model=InspectionResponse)
 async def upload_inspection(
     file: UploadFile = File(...),
@@ -67,9 +78,13 @@ async def upload_inspection(
     
     return new_inspection
 
+
 @router.get("/{inspection_id}", response_model=InspectionResponse)
 def get_inspection(inspection_id: int, db: Session = Depends(get_db)):
     inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
     if not inspection:
         raise HTTPException(status_code=404, detail="Inspection not found")
     return inspection
+
+
+

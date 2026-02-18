@@ -5,7 +5,7 @@ import { getInspections, InspectionResponse } from "../services/api";
 
 interface Props {
   onSelect: (inspection: InspectionResponse) => void;
-  refreshTrigger: number; // Simple way to trigger reload
+  refreshTrigger: number;
 }
 
 export default function InspectionList({ onSelect, refreshTrigger }: Props) {
@@ -27,43 +27,57 @@ export default function InspectionList({ onSelect, refreshTrigger }: Props) {
     }
   };
 
-  if (loading) return <div className="text-gray-500 text-sm">Loading history...</div>;
-
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <h3 className="text-sm font-semibold text-gray-700">Recent Inspections</h3>
+    <div className="glass rounded-lg border border-white/5 h-full flex flex-col overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+        <h3 className="font-medium text-zinc-300 text-xs uppercase tracking-wide">Recent Uploads</h3>
+        <span className="text-[10px] font-medium text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded border border-white/5">
+          {inspections.length} Total
+        </span>
       </div>
-      <ul className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-        {inspections.map((item) => (
-          <li 
-            key={item.id} 
+
+      <div className="overflow-y-auto flex-1 p-2 space-y-1 custom-scrollbar">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-zinc-500 animate-pulse">Loading history...</div>
+        ) : inspections.length === 0 ? (
+          <div className="p-8 text-center text-xs text-zinc-500 italic">
+            No inspections found.
+          </div>
+        ) : inspections.map((item) => (
+          <div
+            key={item.id}
             onClick={() => onSelect(item)}
-            className="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-between"
+            className="group flex flex-col p-3 rounded-md hover:bg-white/[0.03] border border-transparent hover:border-white/5 cursor-pointer transition-all duration-150"
           >
-            <div>
-              <p className="text-sm font-medium text-gray-800">
-                #{item.id} - {item.structure_type}
-              </p>
-              <p className="text-xs text-gray-500">
+            <div className="flex justify-between items-start mb-1">
+              <span className="font-medium text-zinc-300 group-hover:text-white transition-colors text-sm">
+                #{item.id} • {item.structure_type}
+              </span>
+              <span className="text-[10px] text-zinc-600 font-mono">
                 {new Date(item.timestamp || Date.now()).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold
-                ${item.risk_score > 50 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}
-              `}>
-                Risk: {item.risk_score.toFixed(1)}
               </span>
             </div>
-          </li>
+
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{item.environment}</span>
+              <Badge score={item.risk_score} />
+            </div>
+          </div>
         ))}
-        {inspections.length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-gray-400">
-            No inspections found.
-          </li>
-        )}
-      </ul>
+      </div>
     </div>
+  );
+}
+
+// Helper Badge Component
+function Badge({ score }: { score: number }) {
+  const isHigh = score > 50;
+  return (
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${isHigh
+        ? 'bg-rose-950/30 text-rose-400 border-rose-900/30'
+        : 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30'
+      }`}>
+      Risk: {score.toFixed(0)}
+    </span>
   );
 }

@@ -1,6 +1,8 @@
 #custom
 .env
 venv/
+*.pdf
+!docs/*.pdf
 .md
 pyrightconfig.json
 backend/uploads/

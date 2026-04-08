@@ -24,9 +24,14 @@ export default function DamageMap({ data }: Props) {
 
       {/* Overlay Defect Boxes */}
       {data.defects.map((defect, index) => {
-        const [x1, y1, x2, y2] = defect.bbox;
-        const width = x2 - x1;
-        const height = y2 - y1;
+        // AI Engine now returns normalized percentages (0.0 to 1.0)
+        const [nx1, ny1, nx2, ny2] = defect.bbox;
+        
+        // Convert array to percent values
+        const left = nx1 * 100;
+        const top = ny1 * 100;
+        const width = (nx2 - nx1) * 100;
+        const height = (ny2 - ny1) * 100;
 
         // Color coding
         let borderColor = "border-yellow-400"; // Medium
@@ -39,10 +44,10 @@ export default function DamageMap({ data }: Props) {
             title={`${defect.defect_type} (${defect.severity})`}
             className={`absolute border-4 ${borderColor} bg-opacity-20 hover:bg-white hover:bg-opacity-30 cursor-pointer transition-colors`}
             style={{
-              left: `${x1}px`,
-              top: `${y1}px`,
-              width: `${width}px`,
-              height: `${height}px`,
+              left: `${left}%`,
+              top: `${top}%`,
+              width: `${width}%`,
+              height: `${height}%`,
             }}
           >
             {/* Label Tag */}

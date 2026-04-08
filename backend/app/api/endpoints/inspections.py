@@ -45,7 +45,7 @@ async def upload_inspection(
         shutil.copyfileobj(file.file, buffer)
 
     # 2. Trigger AI Analysis
-    detected_defects = await ai_engine.detect_damage(file_location)
+    detected_defects = await ai_engine.detect_damage(file_location, infra_type=structure_type)
     risk_score = ai_engine.calculate_risk_score(detected_defects)
 
     # Determine Priority (Simple logic)

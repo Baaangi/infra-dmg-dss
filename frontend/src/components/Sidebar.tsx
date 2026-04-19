@@ -25,11 +25,7 @@ export default function Sidebar() {
             <nav className="flex-1 px-3 py-4 space-y-2">
                 <NavButton href="/" icon={<ChartBarIcon className="w-5 h-5" />} text="Dashboard" active={pathname === "/"} />
                 <NavButton href="/history" icon={<ClockIcon className="w-5 h-5" />} text="History" active={pathname === "/history"} />
-                
-                {/* Still under construction until the next phase! */}
-                <a href="#" onClick={handleSettingsInfo} className="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-zinc-900 hover:text-zinc-200">
-                    <Cog6ToothIcon className="w-5 h-5" /> <span className="font-medium">Settings</span>
-                </a>
+                <NavButton href="/settings" icon={<Cog6ToothIcon className="w-5 h-5" />} text="Settings" active={pathname === "/settings"} />
             </nav>
 
             <div className="p-4 border-t border-white/5">

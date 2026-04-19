@@ -5,6 +5,8 @@ from app import models
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+from app.api.endpoints import inspections, settings
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,3 +24,4 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(settings.router, prefix="/settings", tags=["settings"])

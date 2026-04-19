@@ -4,7 +4,10 @@ from huggingface_hub import hf_hub_download
 
 class AIEngine:
     def __init__(self):
-        # Cache for loaded models so we only use RAM when needed
+        self.settings = {
+            "confidence_threshold": 0.02
+        }
+
         self.active_models = {}
         
         # Configuration for different infrastructure types
@@ -57,7 +60,7 @@ class AIEngine:
 
         # Run inference using a low confidence, but STRICT iou to remove overlapping boxes.
         # iou=0.2 indicates any bounding boxes that overlap by more than 20% will be merged.
-        results = model(image_path, conf=0.02, iou=0.2)[0]
+        results = model(image_path, conf=self.settings["confidence_threshold"], iou=0.2)[0]
         
         defects = []
         

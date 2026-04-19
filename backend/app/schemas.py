@@ -21,6 +21,8 @@ class DefectBase(BaseModel):
     defect_type: str
     confidence: float
     severity: SeverityLevel
+    damage_scale: str
+    repair_action: str
     bbox: List[float] # [x1, y1, x2, y2]
 
 class DefectCreate(DefectBase):
@@ -48,6 +50,8 @@ class InspectionResponse(InspectionBase):
     timestamp: datetime
     risk_score: float
     maintenance_priority: MaintenancePriority
+    executive_summary: Optional[str] = None
+    overall_recommendation: Optional[str] = None
     defects: List[Defect] = []
 
     # V2 Syntax: Use model_config instead of class Config

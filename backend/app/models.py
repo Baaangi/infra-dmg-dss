@@ -29,6 +29,8 @@ class Inspection(Base):
     # Store overall analysis results
     risk_score = Column(Float, default=0.0) # 0-100
     maintenance_priority = Column(SqlEnum(MaintenancePriority), default=MaintenancePriority.LOW)
+    executive_summary = Column(String, nullable=True)
+    overall_recommendation = Column(String, nullable=True)
     
     # Relationships
     defects = relationship("Defect", back_populates="inspection")
@@ -41,6 +43,8 @@ class Defect(Base):
     defect_type = Column(String, index=True) # crack, spalling, corrosion
     confidence = Column(Float)
     severity = Column(SqlEnum(SeverityLevel), default=SeverityLevel.LOW)
+    damage_scale = Column(String, default="Minor")
+    repair_action = Column(String, default="Monitor")
     
     # Location on image (Bounding Box: [x1, y1, x2, y2])
     bbox = Column(JSON) 

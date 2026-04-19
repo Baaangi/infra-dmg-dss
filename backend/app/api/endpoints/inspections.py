@@ -45,8 +45,18 @@ async def upload_inspection(
         shutil.copyfileobj(file.file, buffer)
 
     # 2. Trigger AI Analysis
-    detected_defects = await ai_engine.detect_damage(file_location, infra_type=structure_type)
+    detected_defects = await ai_engine.detect_damage(
+        file_location, 
+        infra_type=structure_type,
+        environment=environment, 
+        age_years=age_years
+    )
     risk_score = ai_engine.calculate_risk_score(detected_defects)
+
+    # Generate Executive Summary
+    exec_summary, overall_rec = ai_engine.generate_executive_summary(
+        detected_defects, structure_type, environment, age_years, risk_score
+    )
 
     # Determine Priority (Simple logic)
     priority = MaintenancePriority.LOW
@@ -61,7 +71,9 @@ async def upload_inspection(
         age_years=age_years,
         environment=environment,
         risk_score=risk_score,
-        maintenance_priority=priority
+        maintenance_priority=priority,
+        executive_summary=exec_summary,
+        overall_recommendation=overall_rec
     )
     db.add(new_inspection)
     db.commit()
@@ -74,6 +86,8 @@ async def upload_inspection(
             defect_type=d["defect_type"],
             confidence=d["confidence"],
             severity=SeverityLevel(d["severity"]),
+            damage_scale=d.get("damage_scale", "Unknown Scale"),
+            repair_action=d.get("repair_action", "Monitor"),
             bbox=d["bbox"]
         )
         db.add(new_defect)

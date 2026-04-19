@@ -4,7 +4,7 @@ import { useState } from "react";
 import InspectionForm from "../components/InspectionForm";
 import DamageMap from "../components/DamageMap";
 import InspectionList from "../components/InspectionList";
-import Sidebar from "../components/Sidebar";
+
 import { InspectionResponse } from "../services/api";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 
@@ -23,13 +23,11 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div>
 
-      {/* 1. Sidebar */}
-      <Sidebar />
 
       {/* 2. Main Content Wrapper */}
-      <main className="flex-1 ml-64 p-8 relative">
+      <main className="p-8 relative">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-6">
@@ -69,7 +67,7 @@ export default function Home() {
           <div className="col-span-12 lg:col-span-8 flex flex-col gap-6 h-[calc(100vh-140px)] sticky top-4">
 
             {/* Results Card */}
-            <div className="glass rounded-lg p-6 flex-1 flex flex-col relative overflow-hidden">
+            <div className="glass rounded-lg p-6 flex-1 flex flex-col relative overflow-y-auto custom-scrollbar">
 
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-3">
@@ -95,12 +93,65 @@ export default function Home() {
                   </div>
 
                   {/* Image Map */}
-                  <div className="flex-1 bg-black/40 rounded border border-white/5 flex items-center justify-center p-4 relative overflow-hidden group">
+                  <div className="flex-1 min-h-0 bg-black/40 rounded border border-white/5 flex items-center justify-center p-4 relative overflow-hidden group">
                     <DamageMap data={result} />
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-900/90 text-zinc-300 text-[10px] px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10">
                       Interactive View
                     </div>
                   </div>
+
+                  {/* AI Context Assessment (Natural inline flow) */}
+                  {result.defects.length > 0 && (
+                    <div className="shrink-0 bg-black/40 border border-white/5 rounded-lg p-5 shadow-inner mt-2">
+                      <h3 className="text-xs font-semibold text-violet-400 mb-4 tracking-widest uppercase border-b border-white/5 pb-2">
+                        AI Context Assessment Report
+                      </h3>
+
+                      {/* Executive Summary Block */}
+                      {(result as any).executive_summary && (
+                        <div className="mb-6 p-4 rounded-lg bg-violet-900/10 border border-violet-500/20 shadow-sm">
+                           <p className="text-sm text-zinc-300 leading-relaxed mb-3">
+                             <strong className="text-violet-400 block mb-1 uppercase tracking-wider text-[10px]">Overview</strong>
+                             {(result as any).executive_summary}
+                           </p>
+                           <div className="p-3 bg-zinc-950/50 rounded-md border-l-2 border-amber-500">
+                             <p className="text-sm text-amber-200/90 font-medium">
+                               <strong className="text-amber-500 mr-2 uppercase tracking-wider text-[10px]">Master Directive:</strong> 
+                               {(result as any).overall_recommendation}
+                             </p>
+                           </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {result.defects.map((defect, index) => {
+                          const scale = (defect as any).damage_scale || "Unknown Scale";
+                          const repair = (defect as any).repair_action || "No action recommended.";
+                          return (
+                            <div key={`report-${index}`} className="p-3 bg-zinc-900/40 rounded border-l-2 border-violet-500 shadow-sm">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-medium text-white text-sm">{defect.defect_type}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wider
+                                  ${defect.severity === 'Critical' ? 'bg-red-950/30 text-rose-400' : 
+                                    defect.severity === 'High' ? 'bg-orange-950/30 text-orange-400' : 
+                                    'bg-blue-950/30 text-blue-400'}`}>
+                                  {defect.severity}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1 mt-2">
+                                <p className="text-xs text-zinc-300">
+                                  <strong className="text-zinc-500 font-normal mr-1">Scale:</strong> {scale}
+                                </p>
+                                <p className="text-xs text-amber-200/90">
+                                  <strong className="text-zinc-500 font-normal mr-1">Action:</strong> {repair}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg bg-zinc-900/20 text-zinc-600">

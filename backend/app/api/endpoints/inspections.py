@@ -15,6 +15,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import tempfile
 
+from app.api.deps import get_current_user
+from app.models import User
+
+
 router = APIRouter()
 
 UPLOAD_DIR = "uploads"
@@ -25,10 +29,14 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def get_inspections(
     skip: int = 0,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    inspections = db.query(Inspection).order_by(Inspection.timestamp.desc()).offset(skip).limit(limit).all()
-    return inspections
+    if current_user.is_admin:
+        return db.query(Inspection).filter(Inspection.user_id.isnot(None)).order_by(Inspection.timestamp.desc()).offset(skip).limit(limit).all()
+    else:
+        # Standard users only see what they uploaded
+        return db.query(Inspection).filter(Inspection.user_id == current_user.id).order_by(Inspection.timestamp.desc()).offset(skip).limit(limit).all()
 
 
 @router.post("/upload", response_model=InspectionResponse)
@@ -37,7 +45,8 @@ async def upload_inspection(
     structure_type: str = Form(...),
     age_years: int = Form(...),
     environment: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # 1. Save Image
     file_location = f"{UPLOAD_DIR}/{datetime.now().timestamp()}_{file.filename}"
@@ -66,6 +75,7 @@ async def upload_inspection(
 
     # 3. Save to DB
     new_inspection = Inspection(
+        user_id=current_user.id,
         image_path=file_location,
         structure_type=structure_type,
         age_years=age_years,
@@ -154,5 +164,19 @@ def generate_report(inspection_id: int, db: Session = Depends(get_db)):
     
     return FileResponse(tmp_filename, filename=f"Inspection_Report_{inspection_id}.pdf", media_type='application/pdf')
 
+@router.get("/telemetry/system")
+def get_telemetry(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Clearance Level 4 Required")
+    
+    total_users = db.query(User).count()
+    total_scans = db.query(Inspection).filter(Inspection.user_id.isnot(None)).count()
+    critical_scans = db.query(Inspection).filter(Inspection.user_id.isnot(None), Inspection.maintenance_priority == "Critical").count()
+    
+    return {
+        "total_users": total_users,
+        "total_scans": total_scans,
+        "critical_scans": critical_scans,
+    }
 
 

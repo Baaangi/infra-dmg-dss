@@ -20,10 +20,15 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryInspection[]>([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/inspections/")
-      .then((res) => res.json())
-      .then((data) => setHistory(data))
-      .catch((err) => console.error("Error fetching history", err));
+    // Import API dynamically to prevent SSR hydration mismatches
+    import("../../services/api").then(({ getInspections }) => {
+        getInspections()
+            .then((data) => {
+                if (Array.isArray(data)) setHistory(data);
+                else console.error("API returned non-array:", data);
+            })
+            .catch((err) => console.error("Error fetching history", err));
+    });
   }, []);
 
   // Compute Statistics locally

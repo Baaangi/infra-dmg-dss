@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum as SqlEnum, JSON
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum as SqlEnum, JSON, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -16,10 +16,29 @@ class MaintenancePriority(str, enum.Enum):
     HIGH = "High"
     CRITICAL = "Critical"
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_admin = Column(Boolean, default=False)
+    full_name = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    role = Column(String, nullable=True)
+    company_name = Column(String, nullable=True)
+    profile_pic_path = Column(String, nullable=True)
+    
+    inspections = relationship("Inspection", back_populates="owner")
+
 class Inspection(Base):
     __tablename__ = "inspections"
 
     id = Column(Integer, primary_key=True, index=True)
+    #user
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True) 
+    owner = relationship("User", back_populates="inspections")
+
     image_path = Column(String, nullable=False)
     structure_type = Column(String, index=True) # bridge, road, building
     age_years = Column(Integer)

@@ -4,6 +4,14 @@ const api = axios.create({
   baseURL: 'http://127.0.0.1:8000', // Pointing to your FastAPI Backend
 });
 
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`; 
+    }
+    return config;
+});
+
 
 export const getInspections = async (): Promise<InspectionResponse[]> => {
   const response = await api.get('/inspections/');

@@ -5,7 +5,7 @@ from app import models
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
-from app.api.endpoints import inspections, settings
+from app.api.endpoints import inspections, settings, auth
 
 
 Base.metadata.create_all(bind=engine)
@@ -14,6 +14,8 @@ app = FastAPI(title="infra-dmg-dss")
 
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+os.makedirs("uploads/avatars", exist_ok=True)
+app.mount("/uploads/avatars", StaticFiles(directory="uploads/avatars"), name="avatars")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,3 +27,5 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+

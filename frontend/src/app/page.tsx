@@ -75,8 +75,8 @@ export default function Home() {
                 </h2>
                 {result && (
                   <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border ${result.maintenance_priority === "Critical" ? "bg-rose-950/30 text-rose-400 border-rose-900/30" :
-                      result.maintenance_priority === "High" ? "bg-orange-950/30 text-orange-400 border-orange-900/30" :
-                        "bg-blue-950/30 text-blue-400 border-blue-900/30"
+                    result.maintenance_priority === "High" ? "bg-orange-950/30 text-orange-400 border-orange-900/30" :
+                      "bg-blue-950/30 text-blue-400 border-blue-900/30"
                     }`}>
                     {result.maintenance_priority} Priority
                   </span>
@@ -110,16 +110,16 @@ export default function Home() {
                       {/* Executive Summary Block */}
                       {(result as any).executive_summary && (
                         <div className="mb-6 p-4 rounded-lg bg-violet-900/10 border border-violet-500/20 shadow-sm">
-                           <p className="text-sm text-zinc-300 leading-relaxed mb-3">
-                             <strong className="text-violet-400 block mb-1 uppercase tracking-wider text-[10px]">Overview</strong>
-                             {(result as any).executive_summary}
-                           </p>
-                           <div className="p-3 bg-zinc-950/50 rounded-md border-l-2 border-amber-500">
-                             <p className="text-sm text-amber-200/90 font-medium">
-                               <strong className="text-amber-500 mr-2 uppercase tracking-wider text-[10px]">Master Directive:</strong> 
-                               {(result as any).overall_recommendation}
-                             </p>
-                           </div>
+                          <p className="text-sm text-zinc-300 leading-relaxed mb-3">
+                            <strong className="text-violet-400 block mb-1 uppercase tracking-wider text-[10px]">Overview</strong>
+                            {(result as any).executive_summary}
+                          </p>
+                          <div className="p-3 bg-zinc-950/50 rounded-md border-l-2 border-amber-500">
+                            <p className="text-sm text-amber-200/90 font-medium">
+                              <strong className="text-amber-500 mr-2 uppercase tracking-wider text-[10px]">Analysis:</strong>
+                              {(result as any).overall_recommendation}
+                            </p>
+                          </div>
                         </div>
                       )}
 
@@ -132,9 +132,9 @@ export default function Home() {
                               <div className="flex justify-between items-center mb-1">
                                 <span className="font-medium text-white text-sm">{defect.defect_type}</span>
                                 <span className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wider
-                                  ${defect.severity === 'Critical' ? 'bg-red-950/30 text-rose-400' : 
-                                    defect.severity === 'High' ? 'bg-orange-950/30 text-orange-400' : 
-                                    'bg-blue-950/30 text-blue-400'}`}>
+                                  ${defect.severity === 'Critical' ? 'bg-red-950/30 text-rose-400' :
+                                    defect.severity === 'High' ? 'bg-orange-950/30 text-orange-400' :
+                                      'bg-blue-950/30 text-blue-400'}`}>
                                   {defect.severity}
                                 </span>
                               </div>

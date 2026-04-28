@@ -17,14 +17,14 @@ class AIEngine:
                 "filename": "best.pt",
                 "fallback": "yolov8n.pt"
             },
-            "Bridge": { # Example Structural Detector (Replace with your actual repo later)
-                "repo_id": None, 
-                "filename": None,
+            "Bridge": { # Structural Crack & Spalling Detector
+                "repo_id": "hyunon/crack-yolov8", 
+                "filename": "crack.pt",
                 "fallback": "yolov8n.pt"
             },
-            "Building": { # Fallback to base YOLO for testing if you don't have a model yet
-                "repo_id": None, 
-                "filename": None,
+            "Building": { # Structural Crack & Spalling Detector
+                "repo_id": "hyunon/crack-yolov8", 
+                "filename": "crack.pt",
                 "fallback": "yolov8n.pt"
             }
         }
@@ -166,26 +166,26 @@ class AIEngine:
     def generate_executive_summary(self, defects: List[Dict], infra_type: str, environment: str, age_years: int, risk_score: float) -> tuple[str, str]:
         """Synthesizes a high-level summary and recommended action for the entire inspection."""
         if not defects:
-            return ("No structural anomalies detected. Initial surface scan appears entirely optimal.", "Proceed with standard preventative maintenance cycle.")
+            return ("No defects detected. Surface condition appears normal.", "Proceed with standard preventative maintenance cycle.")
             
         critical_count = sum(1 for d in defects if d.get('severity') == "Critical")
         total_defects = len(defects)
         
         # Determine Summary
         if critical_count > 0:
-            summary = f"Severe localized deterioration detected across {total_defects} points of interest. Includes {critical_count} highly critical structural anomalies requiring immediate review."
+            summary = f"Severe damage detected at {total_defects} location(s). Including {critical_count} critical defects."
         elif total_defects > 3:
-            summary = f"Widespread moderate surface degradation identified ({total_defects} total anomalies). Physical patterning implies accelerated lateral breakdown."
+            summary = f"Multiple defects detected ({total_defects} ). Indictes moderate surface degradation."
         else:
-            summary = f"Isolated minor degradation detected. {total_defects} non-critical defects found."
+            summary = f"Minor damage detected. {total_defects} low-severity defects found."
             
         # Determine Recommendation
         if risk_score > 75:
-            rec = f"EMERGENCY PRIORITY: Immediately flag for deep engineering triage. High-risk {environment} environmental exposure accelerates compounding structural failure."
+            rec = f"High risk detected. Immediate inspection and repair required, especially considering {environment.lower()} conditions."
         elif risk_score > 40:
-            rec = f"Schedule formal structural resculpting within next 60 days. Current aged infrastructure ({age_years} yrs) compounding with damage spread mandates proactive resurfacing."
+            rec = f"Moderate risk. Schedule maintenance within the next 30–60 days. Structure age ({age_years} years) may contribute to deterioration."
         else:
-            rec = "Condition acceptable. Integrate isolated points into the standard semi-annual maintenance patching cycle."
+            rec = "Low risk. Condition is acceptable. Include in routine maintenance and monitoring cycle."
             
         return summary, rec
 

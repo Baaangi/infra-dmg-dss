@@ -46,6 +46,7 @@ class InspectionCreate(InspectionBase):
 
 class InspectionResponse(InspectionBase):
     id: int
+    user_id: Optional[int] = None
     image_path: str
     timestamp: datetime
     risk_score: float

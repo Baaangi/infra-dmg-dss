@@ -11,7 +11,7 @@ interface Props {
 export default function InspectionForm({ onUploadSuccess }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
-    structure_type: "Bridge",
+    structure_type: "Road",
     age_years: 0,
     environment: "Urban",
   });
@@ -71,8 +71,8 @@ export default function InspectionForm({ onUploadSuccess }: Props) {
               onChange={(e) => setFormData({ ...formData, structure_type: e.target.value })}
               className="w-full rounded-md border border-zinc-700/50 bg-zinc-900/50 text-zinc-200 text-sm focus:ring-1 focus:ring-violet-500 focus:border-violet-500 p-2 outline-none transition-all placeholder-zinc-600"
             >
-              <option className="bg-zinc-900 text-white">Bridge</option>
               <option className="bg-zinc-900 text-white">Road</option>
+              <option className="bg-zinc-900 text-white">Bridge</option>
               <option className="bg-zinc-900 text-white">Building</option>
             </select>
           </div>

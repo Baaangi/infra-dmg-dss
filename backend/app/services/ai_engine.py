@@ -1,0 +1,229 @@
+import json
+import os
+from ultralytics import YOLO
+from typing import List, Dict, Any
+from huggingface_hub import hf_hub_download
+
+class AIEngine:
+    def __init__(self):
+        self.settings_path = "settings.json"
+        self.settings = {
+            "confidence_threshold_bridge": 0.35,
+            "confidence_threshold_building": 0.35,
+            "confidence_threshold_road": 0.25,
+        }
+        self.load_settings()
+
+        self.active_models = {}
+
+        # Configuration for different infrastructure types
+        self.model_configs = {
+            "Road": { # Pothole & Garbage Detector
+                "repo_id": "utkarsh-23/yolov8m-garbage-pothole-detector",
+                "filename": "best.pt",
+                "fallback": "yolov8n.pt"
+            },
+            "Bridge": { # Structural Crack & Spalling Detector
+                "repo_id": "hyunon/crack-yolov8", 
+                "filename": "crack.pt",
+                "fallback": "yolov8n.pt"
+            },
+            "Building": { # Structural Crack & Spalling Detector
+                "repo_id": "GraceHtun/building-defects-7class", 
+                "filename": "best_7class_AUG.pt",
+                "fallback": "yolov8n.pt"
+            }
+        }
+
+    def load_settings(self):
+        if os.path.exists(self.settings_path):
+            try:
+                with open(self.settings_path, "r") as f:
+                    saved = json.load(f)
+                    self.settings.update(saved)
+                print("Loaded persistent AI settings.")
+            except Exception as e:
+                print(f"Error loading AI settings: {e}")
+
+    def save_settings(self):
+        try:
+            with open(self.settings_path, "w") as f:
+                json.dump(self.settings, f, indent=4)
+            print("Saved persistent AI settings.")
+        except Exception as e:
+            print(f"Error saving AI settings: {e}")
+
+    def _get_model(self, infra_type: str) -> YOLO:
+        """Lazily load models into memory."""
+        if infra_type not in self.model_configs:
+            infra_type = "Road"
+            
+        if infra_type not in self.active_models:
+            config = self.model_configs[infra_type]
+            try:
+                if config["repo_id"]:
+                    model_path = hf_hub_download(repo_id=config["repo_id"], filename=config["filename"])
+                    self.active_models[infra_type] = YOLO(model_path)
+                else:
+                    self.active_models[infra_type] = YOLO(config["fallback"])
+                print(f"Successfully loaded model for {infra_type}.")
+            except Exception as e:
+                print(f"Failed to load specific model for {infra_type}, using fallback... {e}")
+                self.active_models[infra_type] = YOLO(config["fallback"])
+                
+        return self.active_models[infra_type]
+
+    async def detect_damage(self, image_path: str, infra_type: str = "Road", environment: str = "Urban", age_years: int = 0) -> List[Dict[str, Any]]:
+
+        """
+        Runs the image through the custom crack-detection model based on infra_type.
+        Returns a list of detected objects (defects).
+        """
+        # Fetch appropriate model
+        model = self._get_model(infra_type)
+
+        threshold_key = f"confidence_threshold_{infra_type.lower()}"
+        threshold = self.settings.get(threshold_key, self.settings.get("confidence_threshold_road", 0.25))
+        results = model(image_path, conf=threshold, iou=0.2)[0]
+        
+        
+        defects = []
+        
+        # Sort internal bounding boxes by confidence and only keep the absolute top 10 most-likely cracks
+        sorted_boxes = sorted(results.boxes, key=lambda x: float(x.conf), reverse=True)
+        top_boxes = sorted_boxes[:10]
+        
+        # Get the original image dimensions
+        orig_h, orig_w = results.orig_shape
+
+        for box in top_boxes:
+            # Box coordinates: x1, y1, x2, y2 in absolute pixels
+            x1, y1, x2, y2 = box.xyxy.tolist()[0]
+            
+            # Normalize coordinates to 0.0 - 1.0 percentages for responsive UI scaling
+            nx1, ny1 = x1 / orig_w, y1 / orig_h
+            nx2, ny2 = x2 / orig_w, y2 / orig_h
+            
+            # Confidence score
+            conf = float(box.conf)
+            # Custom Model Class Name 
+            cls_id = int(box.cls)
+            class_name = model.names[cls_id]
+            
+            # Strict Allowlist: YOLO is pre-trained on 80 random everyday items (trains, dogs, cars).
+            # Because our confidence is incredibly low (0.02), it will hallucinate these base objects easily.
+            # We must explicitly ONLY allow valid infrastructure damage keywords.
+            valid_defects = [
+                 "pothole", "potholes", "crack", "cracks", "damage", "spalling", "rust",
+                "corrosion", "tile_crack", "efflorescence", "leakage", "exposed_rebar"
+            ]
+            if not any(defect in class_name.lower() for defect in valid_defects):
+                continue
+            
+            # Map the confidence to our application's severity framework
+            severity = "Low"
+            if conf > 0.8:
+                severity = "Critical"
+            elif conf > 0.5:
+                severity = "High"
+            elif conf > 0.3:
+                severity = "Medium"
+
+            # 1. Calculate Damage Scale (Percentage of frame)
+            raw_area = (nx2 - nx1) * (ny2 - ny1) * 100
+            is_crack = "crack" in class_name.lower()
+            
+            # Linear cracks cover a small fraction of their bounding box area compared to potholes/spalling
+            area_pct = raw_area * 0.15 if is_crack else raw_area
+            
+            # OVERRIDE: Geometric Severity Escalation for low-confidence but massive boxes
+            if is_crack:
+                # Moderate/low confidence cracks covering huge boxes should only escalate to High
+                if area_pct > 8.0 and severity in ["Low", "Medium"]:
+                    severity = "High"
+            else:
+                if area_pct > 15.0:
+                    severity = "Critical"
+                elif area_pct > 5.0 and severity in ["Low", "Medium"]:
+                    severity = "High"
+            
+            damage_scale = "Isolated / Minor Outline"
+            if area_pct > 10.0:
+                damage_scale = "Extensive Structural Degradation"
+            elif area_pct > 2.0:
+                damage_scale = "Significant Surface Damage"
+                
+            # 2. Context-Aware Maintenance Query
+            repair_action = "General monitoring recommended."
+            if severity in ["High", "Critical"]:
+                if infra_type.lower() == "bridge" and environment.lower() == "coastal":
+                    repair_action = "Urgent deep-patch required. High risk of accelerated rebar corrosion due to coastal salinity."
+                elif infra_type.lower() == "road" and age_years > 10:
+                    repair_action = "Full depth replacement likely needed due to aging asphalt sub-base."
+                else:
+                    repair_action = "Immediate remediation required due to high severity index."
+            elif severity == "Medium":
+                repair_action = "Schedule intermediate patching/sealant within 3 months."
+            # Inject the new fields into the array
+            defects.append({
+                "defect_type": class_name.capitalize(), 
+                "confidence": conf,
+                "severity": severity,
+                "damage_scale": damage_scale,
+                "repair_action": repair_action,   # <-- ADDED
+                "area_pct": area_pct,  # For geometric risk scoring
+                "bbox": [nx1, ny1, nx2, ny2]
+            })
+
+        return defects
+
+    def calculate_risk_score(self, defects: List[Dict]) -> float:
+        """
+        Calculate refined risk score (0-100) using a base-severity + penalty model.
+        """
+        if not defects:
+            return 0.0
+            
+        weights = {"Low": 10, "Medium": 25, "High": 50, "Critical": 80}
+        
+        # Base score is the absolute highest single defect severity
+        base_score = max([weights.get(d["severity"], 0) for d in defects] or [0])
+        
+        # Add a +5 penalty for every additional defect found in the image
+        penalty = max(0, len(defects) - 1) * 5
+        
+        # GEOMETRIC PENALTY: Add +2 for every 1% of the photo covered in damage
+        total_area = sum(d.get("area_pct", 0) for d in defects)
+        geometric_penalty = total_area * 2.0
+        
+        score = base_score + penalty + geometric_penalty
+        
+        return min(score, 100.0)
+
+    def generate_executive_summary(self, defects: List[Dict], infra_type: str, environment: str, age_years: int, risk_score: float) -> tuple[str, str]:
+        """Synthesizes a high-level summary and recommended action for the entire inspection."""
+        if not defects:
+            return ("No defects detected. Surface condition appears normal.", "Proceed with standard preventative maintenance cycle.")
+            
+        critical_count = sum(1 for d in defects if d.get('severity') == "Critical")
+        total_defects = len(defects)
+        
+        # Determine Summary
+        if critical_count > 0:
+            summary = f"Severe damage detected at {total_defects} location(s). Including {critical_count} critical defects."
+        elif total_defects > 3:
+            summary = f"Multiple defects detected ({total_defects} ). Indictes moderate surface degradation."
+        else:
+            summary = f"Minor damage detected. {total_defects} low-severity defects found."
+            
+        # Determine Recommendation
+        if risk_score > 75:
+            rec = f"High risk detected. Immediate inspection and repair required, especially considering {environment.lower()} conditions."
+        elif risk_score > 40:
+            rec = f"Moderate risk. Schedule maintenance within the next 30–60 days. Structure age ({age_years} years) may contribute to deterioration."
+        else:
+            rec = "Low risk. Condition is acceptable. Include in routine maintenance and monitoring cycle."
+            
+        return summary, rec
+
+ai_engine = AIEngine()

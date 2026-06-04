@@ -1,0 +1,5 @@
+{
+    "confidence_threshold_bridge": 0.35,
+    "confidence_threshold_building": 0.25,
+    "confidence_threshold_road": 0.25
+}
